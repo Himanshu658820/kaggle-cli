@@ -51,6 +51,8 @@ class TestKernelsDelete(unittest.TestCase):
         req = mock_kaggle.kernels.kernels_api_client.delete_kernel.call_args[0][0]
         self.assertEqual(req.user_name, "owner")
         self.assertEqual(req.kernel_slug, "kernel-slug")
+        mock_confirmation.assert_called_once_with("delete the kernel: owner/kernel-slug")
+        mock_print.assert_any_call("Kernel owner/kernel-slug deleted successfully")
 
     @patch("builtins.print")
     @patch.object(KaggleApi, "confirmation", return_value=True)
@@ -63,6 +65,65 @@ class TestKernelsDelete(unittest.TestCase):
         self.api.kernels_delete("owner/kernel-slug/", no_confirm=False)
 
         mock_kaggle.kernels.kernels_api_client.delete_kernel.assert_called_once()
+        mock_confirmation.assert_called_once_with("delete the kernel: owner/kernel-slug")
+        mock_print.assert_any_call("Kernel owner/kernel-slug deleted successfully")
+
+    @patch.object(KaggleApi, "confirmation")
+    @patch.object(KaggleApi, "build_kaggle_client")
+    def test_invalid_references_never_prompt_or_delete(self, mock_build, mock_confirmation):
+        for kernel in ("owner/kernel-slug/   ", "owner/kernel-slug/\t", "tiny"):
+            for no_confirm in (False, True):
+                with self.subTest(kernel=kernel, no_confirm=no_confirm):
+                    with self.assertRaises(ValueError):
+                        self.api.kernels_delete(kernel, no_confirm=no_confirm)
+        mock_confirmation.assert_not_called()
+        mock_build.assert_not_called()
+
+    @patch.object(KaggleApi, "confirmation")
+    @patch.object(KaggleApi, "build_kaggle_client")
+    def test_bare_slug_without_username_rejected(self, mock_build, mock_confirmation):
+        for username in (None, "", "   "):
+            self.api.config_values = {"username": username}
+            for no_confirm in (False, True):
+                with self.subTest(username=username, no_confirm=no_confirm):
+                    with self.assertRaisesRegex(ValueError, "<owner>/<kernel-name>"):
+                        self.api.kernels_delete("kernel-slug", no_confirm=no_confirm)
+        mock_confirmation.assert_not_called()
+        mock_build.assert_not_called()
+
+    @patch("builtins.print")
+    @patch.object(KaggleApi, "confirmation", return_value=False)
+    @patch.object(KaggleApi, "build_kaggle_client")
+    def test_cancellation_never_deletes(self, mock_build, mock_confirmation, mock_print):
+        self.api.kernels_delete("kernel-slug")
+        mock_confirmation.assert_called_once_with("delete the kernel: owner/kernel-slug")
+        mock_print.assert_any_call("Deletion cancelled")
+        mock_build.assert_not_called()
+
+    @patch("builtins.print")
+    @patch.object(KaggleApi, "confirmation", return_value=True)
+    @patch.object(KaggleApi, "build_kaggle_client")
+    def test_bare_slug_resolves_owner(self, mock_build, mock_confirmation, mock_print):
+        self.api.kernels_delete("kernel-slug")
+        mock_confirmation.assert_called_once_with("delete the kernel: owner/kernel-slug")
+        client = mock_build.return_value.__enter__.return_value
+        client.kernels.kernels_api_client.delete_kernel.assert_called_once()
+        request = client.kernels.kernels_api_client.delete_kernel.call_args.args[0]
+        self.assertEqual(request.user_name, "owner")
+        self.assertEqual(request.kernel_slug, "kernel-slug")
+        mock_print.assert_any_call("Kernel owner/kernel-slug deleted successfully")
+
+    @patch("builtins.print")
+    @patch.object(KaggleApi, "confirmation")
+    @patch.object(KaggleApi, "build_kaggle_client")
+    def test_explicit_owner_without_configured_username(self, mock_build, mock_confirmation, mock_print):
+        self.api.config_values = {}
+        self.api.kernels_delete("owner/kernel-slug", no_confirm=True)
+        mock_confirmation.assert_not_called()
+        client = mock_build.return_value.__enter__.return_value
+        client.kernels.kernels_api_client.delete_kernel.assert_called_once()
+        request = client.kernels.kernels_api_client.delete_kernel.call_args.args[0]
+        self.assertEqual(request.user_name, "owner")
 
     def test_kernels_delete_none_raises_error(self):
         with self.assertRaises(ValueError):

@@ -284,6 +284,16 @@ def test_kernels_delete_parser_succeeds(parser):
     assert kwargs["no_confirm"] is True
 
 
+@pytest.mark.parametrize("command", [["kernels", "delete"], ["kernels", "topics", "list"]])
+def test_unversioned_kernel_help(parser, capsys, command):
+    with pytest.raises(SystemExit) as exc:
+        parser.dispatch(command + ["--help"])
+    assert exc.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "<owner>/<kernel-name>" in help_text
+    assert "<version>" not in help_text
+
+
 def test_kernels_topics_default_list_succeeds(parser):
     func, kwargs = parser.dispatch(["kernels", "topics"])
     assert func.__name__ == "kernel_list_topics_cli"
