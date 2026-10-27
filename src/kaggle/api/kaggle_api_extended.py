@@ -6026,7 +6026,7 @@ class KaggleApi:
             )
 
         if not owner_slug.strip():
-            raise ValueError("No username is configured. Specify the kernel as <owner>/<kernel-name>.")
+            raise ValueError("A kernel owner is required. Specify the kernel as <owner>/<kernel-name>.")
         kernel_ref = f"{owner_slug}/{kernel_slug}"
         self.validate_kernel_string(kernel_ref)
 
