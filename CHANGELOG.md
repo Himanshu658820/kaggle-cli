@@ -3,7 +3,7 @@ Changelog
 
 ### Next
 
-* Reject whitespace-only kernel versions in `kaggle kernels delete`, validate bare slugs and require an explicit owner when no username is configured, and show the resolved owner/kernel in deletion messages. Remove unsupported versions from `kernels delete` and `kernels topics list` help
+* Validate bare slugs in `kaggle kernels delete` and require an explicit owner when no username is configured, before confirmation or API access
 * Clear stale CPU/GPU image pins when pushing a TPU notebook pulled from a CPU/GPU session
 * Add `--public` to `kaggle competitions leaderboard`, which returns the public leaderboard from `--show`. Once a competition has concluded `--show` returns the final leaderboard and `--download` returns the public one, and neither said which
 * Fix `kaggle datasets create/version` (and other uploads) failing on Windows with `[Errno 2] No such file or directory` when the path uses forward slashes, such as `C:/data` from Git Bash: the resumable-upload state file name kept the `/` separators and pointed into sub-directories that do not exist
@@ -20,6 +20,7 @@ Changelog
 * Honor the version in `<owner>/<kernel>/<version>` for `kaggle kernels pull`, `output`, `status`, `files` and `logs`, which previously returned 403 for `pull` and acted on the latest version for the others
 * Clarify in `--accelerator` help and kernels docs that `NvidiaTeslaT4` maps to GPU T4 x2 and `TpuV5E8` maps to TPU v5e-8
 * Reject dataset version numbers in `kaggle datasets delete` to prevent unintentionally deleting an entire dataset when targeting a single version
+* Reject kernel version numbers in `kaggle kernels delete`, including whitespace-only ones, to prevent unintentionally deleting an entire kernel when targeting a single version, and stop advertising a version in the `kernels delete` and `kernels topics list` help
 * Show why a submission failed in `kaggle competitions submission <ref>`, which already comes back in the API response but was not displayed
 * Honor `-k/--kernel` in `kaggle kernels pull`, which was ignored when the positional kernel argument was omitted, causing the CLI to fall back to the local `kernel-metadata.json` and pull a different kernel
 * Refuse to write a `kaggle kernels output` file whose server-supplied name resolves outside the requested `--path` directory
